@@ -232,7 +232,7 @@ SaveSlotView::SaveSlotView(const std::string &gameFilename, int slot, UI::Layout
 	AsyncImageFileView *fv = Add(new AsyncImageFileView(screenshotFilename_, IS_DEFAULT, wq, new UI::LayoutParams(82 * 2, 47 * 2)));
 	fv->SetOverlayText(StringFromFormat("%d", slot_ + 1));
 
-	I18NCategory *pa = GetI18NCategory("Pause");
+	auto pa = GetI18NCategory("Pause");
 
 	LinearLayout *buttons = new LinearLayout(ORIENT_VERTICAL, new LinearLayoutParams(WRAP_CONTENT, WRAP_CONTENT));
 	buttons->SetSpacing(2.0);
@@ -316,13 +316,20 @@ GamePauseScreen::~GamePauseScreen() {
 }
 
 void GamePauseScreen::CreateViews() {
-	static const int NUM_SAVESLOTS = 5;
+	int static numSaveSlots = 0;
+
+	if (g_Config.bEnableSaveStates)
+		numSaveSlots = 5;
+	else
+		numSaveSlots = 0;
+		
+	
 
 	using namespace UI;
 	Margins scrollMargins(0, 20, 0, 0);
 	Margins actionMenuMargins(0, 20, 15, 0);
-	I18NCategory *gr = GetI18NCategory("Graphics");
-	I18NCategory *pa = GetI18NCategory("Pause");
+	auto gr = GetI18NCategory("Graphics");
+	auto pa = GetI18NCategory("Pause");
 
 	root_ = new LinearLayout(ORIENT_HORIZONTAL);
 
@@ -334,7 +341,7 @@ void GamePauseScreen::CreateViews() {
 
 	leftColumnItems->Add(new Spacer(0.0));
 	leftColumnItems->SetSpacing(10.0);
-	for (int i = 0; i < NUM_SAVESLOTS; i++) {
+	for (int i = 0; i < numSaveSlots; i++) {
 		SaveSlotView *slot = leftColumnItems->Add(new SaveSlotView(gamePath_, i, new LayoutParams(FILL_PARENT, WRAP_CONTENT)));
 		slot->OnStateLoaded.Handle(this, &GamePauseScreen::OnState);
 		slot->OnStateSaved.Handle(this, &GamePauseScreen::OnState);
@@ -377,18 +384,18 @@ void GamePauseScreen::CreateViews() {
 	// TODO, also might be nice to show overall compat rating here?
 	// Based on their platform or even cpu/gpu/config.  Would add an API for it.
 	if (Reporting::IsSupported() && g_paramSFO.GetValueString("DISC_ID").size()) {
-		I18NCategory *rp = GetI18NCategory("Reporting");
+		auto rp = GetI18NCategory("Reporting");
 		rightColumnItems->Add(new Choice(rp->T("ReportButton", "Report Feedback")))->OnClick.Handle(this, &GamePauseScreen::OnReportFeedback);
 	}
 	rightColumnItems->Add(new Spacer(25.0));
 	if (g_Config.bPauseMenuExitsEmulator) {
-		I18NCategory *mm = GetI18NCategory("MainMenu");
+		auto mm = GetI18NCategory("MainMenu");
 		rightColumnItems->Add(new Choice(mm->T("Exit")))->OnClick.Handle(this, &GamePauseScreen::OnExitToMenu);
 	} else {
-		I18NCategory *mm = GetI18NCategory("MainMenu");
+		auto mm = GetI18NCategory("MainMenu");
 
 		rightColumnItems->Add(new Choice(pa->T("Exit to Menu")))->OnClick.Handle(this, &GamePauseScreen::OnExitToMenu);
-		rightColumnItems->Add(new Choice(mm->T("Exit to Desktop")))->OnClick.Handle(this, &GamePauseScreen::OnExit);
+		rightColumnItems->Add(new Choice(mm->T("Exit PPSSPP")))->OnClick.Handle(this, &GamePauseScreen::OnExit);
 	}
 }
 
@@ -424,7 +431,7 @@ UI::EventReturn GamePauseScreen::OnScreenshotClicked(UI::EventParams &e) {
 	if (SaveState::HasSaveInSlot(gamePath_, slot)) {
 		std::string fn = v->GetScreenshotFilename();
 		std::string title = v->GetScreenshotTitle();
-		I18NCategory *pa = GetI18NCategory("Pause");
+		auto *pa = GetI18NCategory("Pause");
 		Screen *screen = new ScreenshotViewScreen(fn, title, v->GetSlot(), pa);
 		screenManager()->push(screen);
 	}
@@ -447,7 +454,7 @@ UI::EventReturn GamePauseScreen::OnExit(UI::EventParams &e) {
 	System_SendMessage("finish", "");
 
 	// However, let's make sure the config was saved, since it may not have been.
-	g_Config.Save("MainScreen::OnExit");
+	g_Config.Save("PauseScreen::OnExit");
 
 #ifdef __ANDROID__
 #ifdef ANDROID_NDK_PROFILER
@@ -509,8 +516,8 @@ UI::EventReturn GamePauseScreen::OnCreateConfig(UI::EventParams &e)
 
 UI::EventReturn GamePauseScreen::OnDeleteConfig(UI::EventParams &e)
 {
-	I18NCategory *di = GetI18NCategory("Dialog");
-	I18NCategory *ga = GetI18NCategory("Game");
+	auto di = GetI18NCategory("Dialog");
+	auto ga = GetI18NCategory("Game");
 	screenManager()->push(
 		new PromptScreen(di->T("DeleteConfirmGameConfig", "Do you really want to delete the settings for this game?"), ga->T("ConfirmDelete"), di->T("Cancel"),
 		std::bind(&GamePauseScreen::CallbackDeleteConfig, this, std::placeholders::_1)));
