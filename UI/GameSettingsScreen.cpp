@@ -702,6 +702,7 @@ void GameSettingsScreen::CreateViews() {
 	rewindFreq->SetZeroLabel(sy->T("Off"));
 
 	systemSettings->Add(new CheckBox(&g_Config.bMemStickInserted, sy->T("Memory Stick inserted")));
+	systemSettings->Add(new CheckBox(&g_Config.bEnableSaveStates, sy->T("Enable Save States")));
 
 	systemSettings->Add(new ItemHeader(sy->T("General")));
 
